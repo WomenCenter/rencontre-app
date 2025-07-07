@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rencontre Vidéo</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      padding: 30px;
+      background: #f5f5f5;
+      font-family: Arial;
+    }
+    video {
+      width: 45%;
+      height: auto;
+      background: black;
+    }
+  </style>
+</head>
+<body>
+  <video id="localVideo" autoplay muted></video>
+  <video id="remoteVideo" autoplay></video>
+
+  <!-- Utilise Socket.IO distant -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
