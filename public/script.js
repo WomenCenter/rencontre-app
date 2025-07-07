@@ -1,4 +1,5 @@
-const socket = io();
+const socket = io(); // ne jamais mettre d'URL ici
+
 const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
 const startBtn = document.getElementById("startBtn");
@@ -26,13 +27,13 @@ startBtn.addEventListener("click", async () => {
       localVideo.srcObject = localStream;
       await localVideo.play();
     } catch (e) {
-      console.error("Erreur caméra/micro :", e);
-      status.textContent = "Erreur : accès caméra refusé.";
+      console.error("Erreur d’accès à la caméra/micro :", e);
+      status.textContent = "Erreur d’accès à la caméra/micro.";
       return;
     }
   }
 
-  status.textContent = "Recherche d'un(e) partenaire...";
+  status.textContent = "Recherche d’un(e) partenaire...";
   socket.emit("ready");
 });
 
@@ -46,14 +47,15 @@ function createPeerConnection() {
   };
 
   peerConnection.oniceconnectionstatechange = () => {
-    console.log("ICE connection state:", peerConnection.iceConnectionState);
+    console.log("ICE state:", peerConnection.iceConnectionState);
   };
 
   peerConnection.onconnectionstatechange = () => {
-    console.log("Peer connection state:", peerConnection.connectionState);
+    console.log("Connexion WebRTC :", peerConnection.connectionState);
   };
 
   peerConnection.ontrack = (e) => {
+    console.log("Track reçue");
     remoteVideo.srcObject = e.streams[0];
     remoteVideo.onloadedmetadata = () => {
       remoteVideo.play().catch(err => console.error("Erreur lecture vidéo distante :", err));
@@ -66,10 +68,7 @@ socket.on("startCall", async (otherId) => {
   remoteSocketId = otherId;
   createPeerConnection();
 
-  // Ajout des pistes si pas encore ajouté
-  if (peerConnection.getSenders().length === 0 && localStream) {
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-  }
+  localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
   const offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
@@ -80,10 +79,7 @@ socket.on("offer", async ({ offer, from }) => {
   remoteSocketId = from;
   createPeerConnection();
 
-  // Ajout des pistes si pas encore ajouté
-  if (peerConnection.getSenders().length === 0 && localStream) {
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-  }
+  localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
   await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
   const answer = await peerConnection.createAnswer();
@@ -100,7 +96,7 @@ socket.on("ice", async ({ candidate }) => {
     try {
       await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (err) {
-      console.error("Erreur ajout ICE :", err);
+      console.error("Erreur ICE :", err);
     }
   }
 });

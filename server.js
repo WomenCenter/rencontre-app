@@ -9,46 +9,44 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
 let waitingUser = null;
 
 io.on("connection", (socket) => {
   console.log("Nouvel utilisateur connecté :", socket.id);
 
   socket.on("ready", () => {
-    if (waitingUser && waitingUser !== socket.id) {
-      socket.to(waitingUser).emit("startCall", socket.id);
-      socket.emit("startCall", waitingUser);
-      console.log(`Connexion entre ${socket.id} et ${waitingUser}`);
+    if (waitingUser) {
+      const otherSocket = waitingUser;
       waitingUser = null;
+      socket.emit("startCall", otherSocket.id);
+      otherSocket.emit("startCall", socket.id);
+      console.log(`Connexion entre ${socket.id} et ${otherSocket.id}`);
     } else {
-      waitingUser = socket.id;
-      console.log(`${socket.id} est en attente d'une connexion.`);
+      waitingUser = socket;
     }
   });
 
-  socket.on("offer", (data) => {
-    socket.to(data.to).emit("offer", { offer: data.offer, from: socket.id });
+  socket.on("offer", ({ offer, to }) => {
+    io.to(to).emit("offer", { offer, from: socket.id });
   });
 
-  socket.on("answer", (data) => {
-    socket.to(data.to).emit("answer", { answer: data.answer, from: socket.id });
+  socket.on("answer", ({ answer, to }) => {
+    io.to(to).emit("answer", { answer, from: socket.id });
   });
 
-  socket.on("ice", (data) => {
-    socket.to(data.to).emit("ice", { candidate: data.candidate, from: socket.id });
+  socket.on("ice", ({ candidate, to }) => {
+    io.to(to).emit("ice", { candidate, from: socket.id });
   });
 
   socket.on("disconnect", () => {
-    if (waitingUser === socket.id) {
+    console.log("Utilisateur déconnecté :", socket.id);
+    if (waitingUser && waitingUser.id === socket.id) {
       waitingUser = null;
     }
   });
 });
 
-server.listen(3000, () => {
-  console.log("Serveur lancé sur http://0.0.0.0:3000");
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Serveur lancé sur le port ${PORT}`);
 });
