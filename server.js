@@ -18,14 +18,16 @@ let waitingUser = null;
 io.on("connection", (socket) => {
   console.log("Nouvel utilisateur connecté :", socket.id);
 
-  if (waitingUser) {
-    socket.to(waitingUser).emit("startCall", socket.id);
-    socket.emit("startCall", waitingUser);
-    console.log(`Connexion entre ${socket.id} et ${waitingUser}`);
-    waitingUser = null;
-  } else {
-    waitingUser = socket.id;
-  }
+  socket.on("ready", () => {
+    if (waitingUser) {
+      socket.to(waitingUser).emit("startCall", socket.id);
+      socket.emit("startCall", waitingUser);
+      console.log(`Connexion entre ${socket.id} et ${waitingUser}`);
+      waitingUser = null;
+    } else {
+      waitingUser = socket.id;
+    }
+  });
 
   socket.on("offer", (data) => {
     socket.to(data.to).emit("offer", { offer: data.offer, from: socket.id });

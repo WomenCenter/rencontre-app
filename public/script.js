@@ -22,7 +22,9 @@ const config = {
 startBtn.onclick = async () => {
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
   localVideo.srcObject = localStream;
+  localVideo.play();
   status.textContent = "En attente d'une connexion...";
+  socket.emit("ready");
 };
 
 socket.on("startCall", async (otherId) => {
@@ -39,6 +41,7 @@ socket.on("startCall", async (otherId) => {
 
   peerConnection.ontrack = (e) => {
     remoteVideo.srcObject = e.streams[0];
+    remoteVideo.play();
     status.textContent = "Connecté !";
   };
 
@@ -61,6 +64,7 @@ socket.on("offer", async ({ offer, from }) => {
 
   peerConnection.ontrack = (e) => {
     remoteVideo.srcObject = e.streams[0];
+    remoteVideo.play();
     status.textContent = "Connecté !";
   };
 
@@ -78,6 +82,4 @@ socket.on("ice", async ({ candidate }) => {
   try {
     await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
   } catch (e) {
-    console.error("Erreur ICE :", e);
-  }
-});
+    console.error
