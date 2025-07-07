@@ -1,29 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-  <title>Rencontre Vidéo</title>
-  <style>
-    body {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      padding: 30px;
-      background: #f5f5f5;
-      font-family: Arial;
-    }
-    video {
-      width: 45%;
-      height: auto;
-      background: black;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rencontre App</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <video id="localVideo" autoplay muted></video>
-  <video id="remoteVideo" autoplay></video>
-
-  <!-- Utilise Socket.IO distant -->
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <div class="container">
+    <h1>Rencontre Vidéo</h1>
+    <div class="videos">
+      <video id="localVideo" autoplay muted></video>
+      <video id="remoteVideo" autoplay></video>
+    </div>
+    <button id="startBtn">Trouver un(e) partenaire</button>
+    <p id="status">En attente...</p>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
