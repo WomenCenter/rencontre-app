@@ -4,9 +4,9 @@ const remoteVideo = document.getElementById("remoteVideo");
 const startBtn = document.getElementById("startBtn");
 const status = document.getElementById("status");
 
-let localStream;
-let peerConnection;
-let remoteSocketId;
+let localStream = null;
+let peerConnection = null;
+let remoteSocketId = null;
 
 const config = {
   iceServers: [
@@ -19,13 +19,22 @@ const config = {
   ]
 };
 
-startBtn.onclick = async () => {
-  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  localVideo.srcObject = localStream;
-  localVideo.play();
-  status.textContent = "En attente d'une connexion...";
+startBtn.addEventListener("click", async () => {
+  if (!localStream) {
+    try {
+      localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localVideo.srcObject = localStream;
+      await localVideo.play();
+    } catch (e) {
+      console.error("Erreur caméra/micro :", e);
+      status.textContent = "Erreur : accès caméra refusé.";
+      return;
+    }
+  }
+
+  status.textContent = "Recherche d'un(e) partenaire...";
   socket.emit("ready");
-};
+});
 
 socket.on("startCall", async (otherId) => {
   remoteSocketId = otherId;
@@ -42,7 +51,7 @@ socket.on("startCall", async (otherId) => {
   peerConnection.ontrack = (e) => {
     remoteVideo.srcObject = e.streams[0];
     remoteVideo.play();
-    status.textContent = "Connecté !";
+    status.textContent = "Connecté avec un(e) partenaire.";
   };
 
   const offer = await peerConnection.createOffer();
@@ -65,7 +74,7 @@ socket.on("offer", async ({ offer, from }) => {
   peerConnection.ontrack = (e) => {
     remoteVideo.srcObject = e.streams[0];
     remoteVideo.play();
-    status.textContent = "Connecté !";
+    status.textContent = "Connecté avec un(e) partenaire.";
   };
 
   await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
@@ -82,4 +91,6 @@ socket.on("ice", async ({ candidate }) => {
   try {
     await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
   } catch (e) {
-    console.error
+    console.error("Erreur ICE :", e);
+  }
+});
