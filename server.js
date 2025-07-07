@@ -1,40 +1,45 @@
-const express = require('express');
-const app = express();
-const http = require('http').createServer(app);
-const io = require('socket.io')(http);
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const path = require("path");
 
-app.use(express.static('public'));
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
+
+app.use(express.static(path.join(__dirname, "public")));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 let waitingUser = null;
 
-io.on('connection', (socket) => {
-  console.log('Nouvel utilisateur connecté :', socket.id);
+io.on("connection", (socket) => {
+  console.log("Nouvel utilisateur connecté :", socket.id);
 
   if (waitingUser) {
-    console.log(`Connexion entre ${socket.id} et ${waitingUser.id}`);
-    socket.emit('match', { id: waitingUser.id, initiator: true });
-    waitingUser.emit('match', { id: socket.id, initiator: false });
+    socket.to(waitingUser).emit("startCall", socket.id);
+    socket.emit("startCall", waitingUser);
+    console.log(`Connexion entre ${socket.id} et ${waitingUser}`);
     waitingUser = null;
   } else {
-    waitingUser = socket;
+    waitingUser = socket.id;
   }
 
-  socket.on('signal', (data) => {
-    if (data.to) {
-      io.to(data.to).emit('signal', {
-        from: socket.id,
-        signal: data.signal
-      });
-    }
+  socket.on("offer", (data) => {
+    socket.to(data.to).emit("offer", { offer: data.offer, from: socket.id });
   });
 
-  socket.on('disconnect', () => {
-    if (waitingUser === socket) {
-      waitingUser = null;
-    }
+  socket.on("answer", (data) => {
+    socket.to(data.to).emit("answer", { answer: data.answer, from: socket.id });
+  });
+
+  socket.on("ice", (data) => {
+    socket.to(data.to).emit("ice", { candidate: data.candidate, from: socket.id });
   });
 });
 
-http.listen(3000, '0.0.0.0', () => {
-  console.log('Serveur lancé sur http://0.0.0.0:3000');
+server.listen(3000, () => {
+  console.log("Serveur lancé sur http://0.0.0.0:3000");
 });

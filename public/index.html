@@ -1,20 +1,21 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Rencontre App</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rencontre Live</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
-    <h1>Rencontre Vidéo</h1>
-    <div class="videos">
-      <video id="localVideo" autoplay muted></video>
-      <video id="remoteVideo" autoplay></video>
-    </div>
+    <h1>Rencontre aléatoire</h1>
     <button id="startBtn">Trouver un(e) partenaire</button>
-    <p id="status">En attente...</p>
+    <div class="video-grid">
+      <video id="localVideo" autoplay playsinline muted></video>
+      <video id="remoteVideo" autoplay playsinline></video>
+    </div>
+    <p id="status">En attente de connexion...</p>
   </div>
   <script src="/socket.io/socket.io.js"></script>
   <script src="script.js"></script>

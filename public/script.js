@@ -1,70 +1,77 @@
+
 const socket = io();
 const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
-const status = document.getElementById("status");
 const startBtn = document.getElementById("startBtn");
+const status = document.getElementById("status");
 
 let localStream;
 let peerConnection;
+let remoteSocketId;
 
 const config = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
 };
 
-startBtn.addEventListener("click", async () => {
-  startBtn.disabled = true;
-  status.textContent = "Recherche d’un(e) partenaire...";
-
+startBtn.onclick = async () => {
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
   localVideo.srcObject = localStream;
-  socket.emit("ready");
-});
+  status.textContent = "En attente d'une connexion...";
+};
 
-socket.on("startCall", async (otherUserId) => {
-  status.textContent = "Connexion en cours...";
-
+socket.on("startCall", async (otherId) => {
+  remoteSocketId = otherId;
   peerConnection = new RTCPeerConnection(config);
+
   localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
-  peerConnection.onicecandidate = (event) => {
-    if (event.candidate) {
-      socket.emit("ice", event.candidate);
+  peerConnection.onicecandidate = (e) => {
+    if (e.candidate) {
+      socket.emit("ice", { candidate: e.candidate, to: remoteSocketId });
     }
   };
 
-  peerConnection.ontrack = (event) => {
-    remoteVideo.srcObject = event.streams[0];
+  peerConnection.ontrack = (e) => {
+    remoteVideo.srcObject = e.streams[0];
+    status.textContent = "Connecté !";
   };
 
   const offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
-  socket.emit("offer", offer);
+  socket.emit("offer", { offer, to: remoteSocketId });
 });
 
-socket.on("offer", async (offer) => {
+socket.on("offer", async ({ offer, from }) => {
+  remoteSocketId = from;
   peerConnection = new RTCPeerConnection(config);
+
   localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
-  peerConnection.onicecandidate = (event) => {
-    if (event.candidate) {
-      socket.emit("ice", event.candidate);
+  peerConnection.onicecandidate = (e) => {
+    if (e.candidate) {
+      socket.emit("ice", { candidate: e.candidate, to: remoteSocketId });
     }
   };
 
-  peerConnection.ontrack = (event) => {
-    remoteVideo.srcObject = event.streams[0];
+  peerConnection.ontrack = (e) => {
+    remoteVideo.srcObject = e.streams[0];
+    status.textContent = "Connecté !";
   };
 
-  await peerConnection.setRemoteDescription(offer);
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
   const answer = await peerConnection.createAnswer();
   await peerConnection.setLocalDescription(answer);
-  socket.emit("answer", answer);
+  socket.emit("answer", { answer, to: remoteSocketId });
 });
 
-socket.on("answer", async (answer) => {
-  await peerConnection.setRemoteDescription(answer);
+socket.on("answer", async ({ answer }) => {
+  await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
 });
 
-socket.on("ice", async (candidate) => {
-  await peerConnection.addIceCandidate(candidate);
+socket.on("ice", async ({ candidate }) => {
+  try {
+    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+  } catch (e) {
+    console.error("Erreur ICE :", e);
+  }
 });
