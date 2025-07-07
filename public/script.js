@@ -10,15 +10,18 @@ navigator.mediaDevices.getUserMedia({ video: true, audio: true })
     localVideo.srcObject = stream;
 
     socket.on('match', ({ id: partnerId, initiator }) => {
+      console.log("Match trouvé avec", partnerId, "— initiator:", initiator);
       startCall(partnerId, initiator, stream);
     });
 
     socket.on('signal', async ({ from, signal }) => {
+      console.log("Signal reçu :", signal);
+
       if (signal.type === 'offer') {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
-        socket.emit('signal', { to: from, signal: answer });
+        socket.emit('signal', { to: from, signal: peerConnection.localDescription });
       } else if (signal.type === 'answer') {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(signal));
       } else if (signal.candidate) {
@@ -31,7 +34,7 @@ navigator.mediaDevices.getUserMedia({ video: true, audio: true })
     });
   })
   .catch(err => {
-    alert("🚫 Erreur : la caméra ou le micro n'ont pas pu être activés.\n\n" + err.message);
+    alert("Erreur accès caméra/micro : " + err.message);
     console.error("getUserMedia error:", err);
   });
 
@@ -43,6 +46,7 @@ function startCall(partnerId, isInitiator, stream) {
   });
 
   peerConnection.ontrack = (event) => {
+    console.log("Flux reçu de l'autre utilisateur.");
     remoteVideo.srcObject = event.streams[0];
   };
 
