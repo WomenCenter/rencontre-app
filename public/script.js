@@ -24,9 +24,11 @@ startBtn.addEventListener("click", async () => {
     try {
       localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localVideo.srcObject = localStream;
-      await localVideo.play();
+      localVideo.onloadedmetadata = () => {
+        localVideo.play().catch(e => console.error("Erreur lecture vidéo locale :", e));
+      };
     } catch (e) {
-      console.error("Erreur caméra/micro :", e);
+      console.error("Erreur accès caméra/micro :", e);
       status.textContent = "Erreur : accès caméra refusé.";
       return;
     }
@@ -40,7 +42,9 @@ socket.on("startCall", async (otherId) => {
   remoteSocketId = otherId;
   peerConnection = new RTCPeerConnection(config);
 
-  localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+  localStream.getTracks().forEach(track => {
+    peerConnection.addTrack(track, localStream);
+  });
 
   peerConnection.onicecandidate = (e) => {
     if (e.candidate) {
@@ -50,8 +54,14 @@ socket.on("startCall", async (otherId) => {
 
   peerConnection.ontrack = (e) => {
     remoteVideo.srcObject = e.streams[0];
-    remoteVideo.play();
+    remoteVideo.onloadedmetadata = () => {
+      remoteVideo.play().catch(e => console.error("Erreur lecture vidéo distante :", e));
+    };
     status.textContent = "Connecté avec un(e) partenaire.";
+  };
+
+  peerConnection.onconnectionstatechange = () => {
+    console.log("État de la connexion :", peerConnection.connectionState);
   };
 
   const offer = await peerConnection.createOffer();
@@ -63,7 +73,9 @@ socket.on("offer", async ({ offer, from }) => {
   remoteSocketId = from;
   peerConnection = new RTCPeerConnection(config);
 
-  localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+  localStream.getTracks().forEach(track => {
+    peerConnection.addTrack(track, localStream);
+  });
 
   peerConnection.onicecandidate = (e) => {
     if (e.candidate) {
@@ -73,8 +85,14 @@ socket.on("offer", async ({ offer, from }) => {
 
   peerConnection.ontrack = (e) => {
     remoteVideo.srcObject = e.streams[0];
-    remoteVideo.play();
+    remoteVideo.onloadedmetadata = () => {
+      remoteVideo.play().catch(e => console.error("Erreur lecture vidéo distante :", e));
+    };
     status.textContent = "Connecté avec un(e) partenaire.";
+  };
+
+  peerConnection.onconnectionstatechange = () => {
+    console.log("État de la connexion :", peerConnection.connectionState);
   };
 
   await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
