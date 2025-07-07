@@ -1,4 +1,4 @@
-const socket = io(); // ne jamais mettre d'URL ici
+const socket = io(); // pas d'URL ici !
 
 const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
@@ -20,6 +20,7 @@ const config = {
   ]
 };
 
+// démarrer la recherche
 startBtn.addEventListener("click", async () => {
   if (!localStream) {
     try {
@@ -27,8 +28,8 @@ startBtn.addEventListener("click", async () => {
       localVideo.srcObject = localStream;
       await localVideo.play();
     } catch (e) {
-      console.error("Erreur d’accès à la caméra/micro :", e);
-      status.textContent = "Erreur d’accès à la caméra/micro.";
+      console.error("Erreur caméra/micro :", e);
+      status.textContent = "Erreur accès caméra/micro.";
       return;
     }
   }
@@ -46,21 +47,12 @@ function createPeerConnection() {
     }
   };
 
-  peerConnection.oniceconnectionstatechange = () => {
-    console.log("ICE state:", peerConnection.iceConnectionState);
-  };
-
-  peerConnection.onconnectionstatechange = () => {
-    console.log("Connexion WebRTC :", peerConnection.connectionState);
-  };
-
-  peerConnection.ontrack = (e) => {
-    console.log("Track reçue");
-    remoteVideo.srcObject = e.streams[0];
-    remoteVideo.onloadedmetadata = () => {
-      remoteVideo.play().catch(err => console.error("Erreur lecture vidéo distante :", err));
-    };
-    status.textContent = "Connecté avec un(e) partenaire.";
+  peerConnection.ontrack = (event) => {
+    if (!remoteVideo.srcObject) {
+      remoteVideo.srcObject = event.streams[0];
+      remoteVideo.play().catch(err => console.error("Erreur lecture flux distant :", err));
+      status.textContent = "Connecté(e) avec un(e) partenaire.";
+    }
   };
 }
 
@@ -68,6 +60,7 @@ socket.on("startCall", async (otherId) => {
   remoteSocketId = otherId;
   createPeerConnection();
 
+  // ajouter le flux local
   localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
   const offer = await peerConnection.createOffer();
@@ -79,6 +72,7 @@ socket.on("offer", async ({ offer, from }) => {
   remoteSocketId = from;
   createPeerConnection();
 
+  // ajouter le flux local avant toute description
   localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
   await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
@@ -92,7 +86,7 @@ socket.on("answer", async ({ answer }) => {
 });
 
 socket.on("ice", async ({ candidate }) => {
-  if (candidate && peerConnection) {
+  if (candidate) {
     try {
       await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
     } catch (err) {
