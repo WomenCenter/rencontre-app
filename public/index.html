@@ -2,20 +2,14 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Rencontre Live</title>
-  <link rel="stylesheet" href="style.css"/>
+  <title>Site de Rencontre WebRTC</title>
 </head>
 <body>
-  <div class="container">
-    <h1>Rencontre aléatoire</h1>
-    <button id="startBtn">Trouver un(e) partenaire</button>
-    <div class="video-grid">
-      <video id="localVideo" autoplay playsinline muted></video>
-      <video id="remoteVideo" autoplay playsinline></video>
-    </div>
-    <p id="status">En attente de connexion...</p>
-  </div>
+  <h1>Rencontre en direct</h1>
+  <video id="localVideo" autoplay playsinline muted></video>
+  <video id="remoteVideo" autoplay playsinline></video>
+  <button id="startBtn">Démarrer</button>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="script.js"></script>
 </body>
